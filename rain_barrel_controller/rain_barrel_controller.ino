@@ -17,6 +17,8 @@ char pass[] = SECRET_PASS;  // your network password (use for WPA, or use as key
 WiFiClient wifiClient;
 MqttClient mqttClient(wifiClient);
 
+MQTTConnection* mqttConnection;
+
 // debug
 const bool debug_pressure = false;
 const bool debug_relay = false;
@@ -30,6 +32,8 @@ int thisDeviceId;
 // hw commands go somewhere else
 
 void setup() {
+
+  mqttConnection = new MQTTConnection(brokerProd, brokerCurrent, false);
 
   // prioritize connecting to the debug broker initially
   strcpy(brokerCurrent, brokerDebug);

@@ -17,5 +17,18 @@ const char topicDeviceStatus[] = "device_status";
 // server-to-device command
 const char topicCommand[] = "command";
 
+class MQTTConnection 
+{   
+    private:
+        char* prodBrokerIp;
+        char* debugBrokerIp;
+
+        char* targetIp;
+        char* backupIp;
+
+    public:
+        MQTTConnection(const char* prodBrokerIp, const char* debugBrokerIp, bool setProdAsPrimary);
+};
+
 #endif
 
