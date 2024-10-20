@@ -1,3 +1,6 @@
+#include <ArduinoMqttClient.h>
+#include <WiFiNINA.h>
+
 #ifndef MQTT_SERVICE
 #define MQTT_SERVICE
 
@@ -23,11 +26,25 @@ class MQTTConnection
         char* prodBrokerIp;
         char* debugBrokerIp;
 
-        char* targetIp;
-        char* backupIp;
+        char* primaryBrokerIp;
+        char* secondaryBrokerIp;
+
+        int brokerPort;
+        
+        MqttClient mqttClient;
+
+        void connectToPrimaryBroker();
+        void setProdIpToPrimaryAndDebugIpToSecondary();
 
     public:
-        MQTTConnection(const char* prodBrokerIp, const char* debugBrokerIp, bool setProdAsPrimary);
+        MQTTConnection(const char* prodBrokerIp, 
+                      const char* debugBrokerIp, 
+                      int brokerPort,
+                      WiFiClient wifiClient);
+
+        void setProdBrokerAsPrimaryAndReconnect();
+        // void setDebugBrokerAsPrimaryAndReconnect();
+        // void connectToPrimaryBrokerOrBackupOnFailure();
 };
 
 #endif

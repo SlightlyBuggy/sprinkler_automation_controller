@@ -32,8 +32,8 @@ int thisDeviceId;
 // hw commands go somewhere else
 
 void setup() {
-
-  mqttConnection = new MQTTConnection(brokerProd, brokerCurrent, false);
+  // TODO: continuing to build this out and use it
+  mqttConnection = new MQTTConnection(brokerProd, brokerDebug, brokerPort, wifiClient);
 
   // prioritize connecting to the debug broker initially
   strcpy(brokerCurrent, brokerDebug);
@@ -139,8 +139,6 @@ void connectWiFiIfNeeded() {
 }
 
 // connect to broker
-// TODO: have device attempt to prod server first, then debug
-// TODO: have way to tell device to switch networks
 void connectToMqttBrokerIfNeeded(const char brokerIp[], const bool force = false) {
 
   if (!mqttClient.connected() || force) {
