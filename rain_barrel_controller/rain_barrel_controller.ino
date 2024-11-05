@@ -39,6 +39,8 @@ void onMqttConnectSideEffects() {
   digitalWrite(LED_BUILTIN, LOW);
   delay(500);
 
+  // TODO: get these details into the mqttConnection
+
   mqttConnection->subscribeToTopic(topicCommand);
   mqttConnection->setMessageHandler(onMqttMessage);
 
@@ -47,7 +49,8 @@ void onMqttConnectSideEffects() {
 
 void setup() {
   // TODO: continuing to build this out and use it
-  mqttConnection = new MQTTConnection(brokerProd, brokerDebug, brokerPort, wifiClient, &onMqttConnectSideEffects);
+  mqttConnection = new MQTTConnection(brokerProd, brokerDebug, brokerPort, 
+                                      wifiClient, &onMqttConnectSideEffects, topicDeviceStatus);
   // prioritize connecting to the debug broker initially
   strcpy(brokerCurrent, brokerDebug);
   strcpy(brokerSecondary, brokerProd);
@@ -92,7 +95,7 @@ void setup() {
 void loop() {
   // call poll() regularly to allow the library to send MQTT keep alive which
   // avoids being disconnected by the broker
-  mqttConnection.poll();
+  mqttConnection->poll();
 
   reconnectIfNeeded();
 

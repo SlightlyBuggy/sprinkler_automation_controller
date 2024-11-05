@@ -7,18 +7,15 @@ MQTTConnection::MQTTConnection(const char* prodBrokerIp,
                                const char* debugBrokerIp, 
                                int brokerPort,
                                WiFiClient wifiClient,
-                               void (onConnectSideEffects*)(),
-                               const char* topic,
-
+                               void (*onConnectSideEffects)(),
+                               const char* deviceToServerTopic
                                ) : mqttClient(wifiClient)
 {
     prodBrokerIp = prodBrokerIp;
     debugBrokerIp = debugBrokerIp;
     brokerPort = brokerPort;
 
-    onConnectSideEffects = onConnectSideEffects;
-    
-    setProdIpToPrimaryAndDebugIpToSecondary();
+    onConnectSideEffectsPtr = onConnectSideEffects;
 };
 
 void MQTTConnection::setProdIpToPrimaryAndDebugIpToSecondary()
@@ -27,7 +24,7 @@ void MQTTConnection::setProdIpToPrimaryAndDebugIpToSecondary()
     strcpy(secondaryBrokerIp, debugBrokerIp);
 }
 
-void MQTTConnection::connectToBroker(char brokerIp)
+bool MQTTConnection::connectToBroker(char* brokerIp)
 {
     if(!mqttClient.connected())
     {
@@ -72,9 +69,9 @@ void MQTTConnection::poll()
     mqttClient.poll();
 };
 
-void MQTTConnection::subscribeToTopic(const char* topic)
+void MQTTConnection::subscribeToTopic(const char* serverToDeviceTopic)
 {
-    mqttClient.subscribe(topic);
+    mqttClient.subscribe(serverToDeviceTopic);
 };
 
 void MQTTConnection::setMessageHandler(void (*messageHandler)(int))
@@ -82,9 +79,14 @@ void MQTTConnection::setMessageHandler(void (*messageHandler)(int))
     mqttClient.onMessage(messageHandler);
 };
 
-void MQTTConnection::sendMessageToTopic(const char* topic, char* message)
+void MQTTConnection::sendMessageToTopic(const char* deviceToServerTopic, char* message)
 {
-    mqttClient.beginMessage(topic);
+    mqttClient.beginMessage(deviceToServerTopic);
     mqttClient.print(message);
     mqttClient.endMessage();
 };
+
+void MQTTConnection::onConnectSideEffects()
+{
+    onConnectSideEffectsPtr();
+}

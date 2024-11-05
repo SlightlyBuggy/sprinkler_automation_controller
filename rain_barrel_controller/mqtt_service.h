@@ -33,25 +33,28 @@ class MQTTConnection
         
         MqttClient mqttClient;
 
+        void (*onConnectSideEffectsPtr)();
         void onConnectSideEffects();
-
-        void connectToBroker();
+        
+        bool connectToBroker(char* brokerIp);
         void setProdIpToPrimaryAndDebugIpToSecondary();
 
     public:
         MQTTConnection(const char* prodBrokerIp, 
                       const char* debugBrokerIp, 
                       int brokerPort,
-                      WiFiClient wifiClient);
+                      WiFiClient wifiClient,
+                      void (*onConnectSideEffects)(),
+                      const char* deviceToServerTopic);
 
         void setProdBrokerAsPrimaryAndReconnect();
         void setDebugBrokerAsPrimaryAndReconnect();
         void connectToPrimaryBrokerOrBackupOnFailure();
         void poll();
-        void subscribeToTopic(const char* topic);
+        void subscribeToTopic(const char* serverToDeviceTopic);
         void setMessageHandler(void (*messageHandler)(int));
-        void sendMessageToTopic(const char* topic, char* message);
-        String getMessageTopic()
+        void sendMessageToTopic(const char* deviceToServerTopic, char* message);
+        String getMessageTopic();
 };
 
 #endif
