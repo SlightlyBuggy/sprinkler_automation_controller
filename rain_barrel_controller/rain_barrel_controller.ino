@@ -26,15 +26,28 @@ const bool debug_batt_voltage = false;
 bool relay_on = false;
 int thisDeviceId;
 
-// TODO: bigtime refactoring
-// put all constants somewhere
-// put mqtt stuff somewhere else
-// hw commands go somewhere else
+void onMqttConnectSideEffects() {
+  Serial.println("Device connected to the MQTT broker!");
+  Serial.println();
+
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(500);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(500);
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(500);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(500);
+
+  mqttConnection->subscribeToTopic(topicCommand);
+  mqttConnection->setMessageHandler(onMqttMessage);
+
+  sendStatusMessage();
+};
 
 void setup() {
   // TODO: continuing to build this out and use it
-  mqttConnection = new MQTTConnection(brokerProd, brokerDebug, brokerPort, wifiClient);
-
+  mqttConnection = new MQTTConnection(brokerProd, brokerDebug, brokerPort, wifiClient, &onMqttConnectSideEffects);
   // prioritize connecting to the debug broker initially
   strcpy(brokerCurrent, brokerDebug);
   strcpy(brokerSecondary, brokerProd);
@@ -79,7 +92,7 @@ void setup() {
 void loop() {
   // call poll() regularly to allow the library to send MQTT keep alive which
   // avoids being disconnected by the broker
-  mqttClient.poll();
+  mqttConnection.poll();
 
   reconnectIfNeeded();
 
@@ -138,50 +151,6 @@ void connectWiFiIfNeeded() {
   return;
 }
 
-// connect to broker
-void connectToMqttBrokerIfNeeded(const char brokerIp[], const bool force = false) {
-
-  if (!mqttClient.connected() || force) {
-    Serial.print("Attempting to connect to the MQTT broker: ");
-    Serial.println(brokerIp);
-
-    if (mqttClient.connect(brokerIp, brokerPort)) {
-      Serial.println("You're connected to the MQTT broker!");
-      Serial.println();
-
-      // ensure we come back to this broker on accidental disconnect
-      strcpy(brokerCurrent, brokerIp);
-
-      // set the secondary broker appropriately
-      // TODO: refactor this.  in fact, refactor this entire goddamn file 
-      if(strcmp(brokerIp, brokerDebug) == 0)
-      {
-        strcpy(brokerSecondary, brokerProd);
-      } else {
-        strcpy(brokerSecondary, brokerDebug);
-      }
-
-      // subscribe to command topic
-      mqttClient.subscribe(topicCommand);
-      mqttClient.onMessage(onMqttMessage);
-      digitalWrite(LED_BUILTIN, HIGH);
-      delay(500);
-      digitalWrite(LED_BUILTIN, LOW);
-      delay(500);
-      digitalWrite(LED_BUILTIN, HIGH);
-      delay(500);
-      digitalWrite(LED_BUILTIN, LOW);
-      delay(500);
-
-      // send status when connected 
-      sendStatusMessage();
-    } else {
-      Serial.print("MQTT connection failed! Error code = ");
-      Serial.println(mqttClient.connectError());
-    }
-  }
-}
-
 void sleepForMinutes(uint minutesToSleep) {
   Serial.print("Going to sleep for ");
   Serial.print(minutesToSleep);
@@ -207,23 +176,17 @@ void reconnectIfNeeded() {
 
   connectWiFiIfNeeded();
 
-  connectToMqttBrokerIfNeeded(brokerCurrent);
-
-  connectToMqttBrokerIfNeeded(brokerSecondary);
+  mqttConnection->connectToPrimaryBrokerOrBackupOnFailure();
 }
 
 // force connection to debug server
 void switchToDebugBroker() {
-  strcpy(brokerCurrent, brokerDebug);
-  strcpy(brokerSecondary, brokerProd);
-  connectToMqttBrokerIfNeeded(brokerCurrent, true);
+  mqttConnection->setDebugBrokerAsPrimaryAndReconnect();
 }
 
 // force connection to prod server
 void switchToProdBroker() {
-  strcpy(brokerCurrent, brokerProd);
-  strcpy(brokerSecondary, brokerDebug);
-  connectToMqttBrokerIfNeeded(brokerProd, true);
+  mqttConnection->setProdBrokerAsPrimaryAndReconnect();
 }
 
 // relay control
@@ -279,11 +242,12 @@ void sendStatusMessage()
   char responseChars[128];
   serializeJson(responseObject, responseChars);
 
-  mqttClient.beginMessage(topicDeviceStatus);
-  mqttClient.print(responseChars);
-  mqttClient.endMessage();
+  mqttConnection->sendMessageToTopic(topicDeviceStatus, responseChars);
 }
 
+// TODO: pick up refactoring here.  Figure out how to get rid of calls to mqttClient
+// it seems like up to line 273 should be included in the mqttConnection object
+// but need to determine how to incorporate printing 
 // handle various mqtt messages
 void onMqttMessage(int messageSize) {
   Serial.print("Received a message with topic: ");

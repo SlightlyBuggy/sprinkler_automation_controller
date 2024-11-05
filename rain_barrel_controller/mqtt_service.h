@@ -33,7 +33,9 @@ class MQTTConnection
         
         MqttClient mqttClient;
 
-        void connectToPrimaryBroker();
+        void onConnectSideEffects();
+
+        void connectToBroker();
         void setProdIpToPrimaryAndDebugIpToSecondary();
 
     public:
@@ -43,8 +45,13 @@ class MQTTConnection
                       WiFiClient wifiClient);
 
         void setProdBrokerAsPrimaryAndReconnect();
-        // void setDebugBrokerAsPrimaryAndReconnect();
-        // void connectToPrimaryBrokerOrBackupOnFailure();
+        void setDebugBrokerAsPrimaryAndReconnect();
+        void connectToPrimaryBrokerOrBackupOnFailure();
+        void poll();
+        void subscribeToTopic(const char* topic);
+        void setMessageHandler(void (*messageHandler)(int));
+        void sendMessageToTopic(const char* topic, char* message);
+        String getMessageTopic()
 };
 
 #endif
