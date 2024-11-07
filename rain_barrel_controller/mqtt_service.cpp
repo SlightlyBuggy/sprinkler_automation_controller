@@ -7,8 +7,7 @@ MQTTConnection::MQTTConnection(const char* prodBrokerIp,
                                const char* debugBrokerIp, 
                                int brokerPort,
                                WiFiClient wifiClient,
-                               void (*onConnectSideEffects)(),
-                               const char* deviceToServerTopic
+                               void (*onConnectSideEffects)()
                                ) : mqttClient(wifiClient)
 {
     prodBrokerIp = prodBrokerIp;
@@ -30,6 +29,8 @@ bool MQTTConnection::connectToBroker(char* brokerIp)
     {
         if (mqttClient.connect(brokerIp, brokerPort))
         {
+            mqttClient.subscribe(topicCommand);
+            mqttClient.onMessage(messageHandlerPtr);
             onConnectSideEffects();
 
             return true;
@@ -69,19 +70,9 @@ void MQTTConnection::poll()
     mqttClient.poll();
 };
 
-void MQTTConnection::subscribeToTopic(const char* serverToDeviceTopic)
+void MQTTConnection::sendDeviceMessageToServer(char* message)
 {
-    mqttClient.subscribe(serverToDeviceTopic);
-};
-
-void MQTTConnection::setMessageHandler(void (*messageHandler)(int))
-{
-    mqttClient.onMessage(messageHandler);
-};
-
-void MQTTConnection::sendMessageToTopic(const char* deviceToServerTopic, char* message)
-{
-    mqttClient.beginMessage(deviceToServerTopic);
+    mqttClient.beginMessage(topicDeviceStatus);
     mqttClient.print(message);
     mqttClient.endMessage();
 };
@@ -89,4 +80,4 @@ void MQTTConnection::sendMessageToTopic(const char* deviceToServerTopic, char* m
 void MQTTConnection::onConnectSideEffects()
 {
     onConnectSideEffectsPtr();
-}
+};

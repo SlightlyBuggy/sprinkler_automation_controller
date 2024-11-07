@@ -26,64 +26,19 @@ const bool debug_batt_voltage = false;
 bool relay_on = false;
 int thisDeviceId;
 
-void onMqttConnectSideEffects() {
-  Serial.println("Device connected to the MQTT broker!");
-  Serial.println();
-
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(500);
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(500);
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(500);
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(500);
-
-  // TODO: get these details into the mqttConnection
-
-  mqttConnection->subscribeToTopic(topicCommand);
-  mqttConnection->setMessageHandler(onMqttMessage);
-
-  sendStatusMessage();
-};
-
 void setup() {
   // TODO: continuing to build this out and use it
   mqttConnection = new MQTTConnection(brokerProd, brokerDebug, brokerPort, 
-                                      wifiClient, &onMqttConnectSideEffects, topicDeviceStatus);
-  // prioritize connecting to the debug broker initially
-  strcpy(brokerCurrent, brokerDebug);
-  strcpy(brokerSecondary, brokerProd);
+                                      wifiClient, &onMqttConnectHwAndPrintEffects);
 
-  // set built in LED pin to output mode
-  pinMode(LED_BUILTIN, OUTPUT);
-
-  // set the ID pins
-  pinMode(ID_PIN_1, INPUT_PULLUP);
-  pinMode(ID_PIN_2, INPUT_PULLUP);
-  pinMode(ID_PIN_3, INPUT_PULLUP);
-  pinMode(ID_PIN_4, INPUT_PULLUP);
-
-    // set the power pin to off initially
-  pinMode(POWER_CONTROL, OUTPUT);
-  digitalWrite(POWER_CONTROL, LOW);
+  setPinsInitialState();
 
   // wait just to make sure this isn't a power transient, which seems to happen when it suddenly becomes dark
   delay(5000);
 
-  // ground the power control pin, which engages an external MOSFET
-  digitalWrite(POWER_CONTROL, HIGH);
-
-  // set the pump relay control pin
-  pinMode(PUMP_RELAY_CONTROL, OUTPUT);
-
-  //Initialize serial and wait for port to open:
   Serial.begin(9600);
 
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(500);
-  digitalWrite(LED_BUILTIN, LOW);
-  delay(1000);
+  ledSingleFlashHalfSecond();
 
   reconnectIfNeeded();
 
@@ -99,6 +54,30 @@ void loop() {
 
   reconnectIfNeeded();
 
+  delay(1000);
+}
+
+void setPinsInitialState()
+{
+  // set built in LED pin to output mode
+  pinMode(LED_BUILTIN, OUTPUT);
+
+  // set the ID pins
+  pinMode(ID_PIN_1, INPUT_PULLUP);
+  pinMode(ID_PIN_2, INPUT_PULLUP);
+  pinMode(ID_PIN_3, INPUT_PULLUP);
+  pinMode(ID_PIN_4, INPUT_PULLUP);
+
+  // set the pump relay control pin
+  pinMode(PUMP_RELAY_CONTROL, OUTPUT);
+
+  // set the power pin to off initially
+  pinMode(POWER_CONTROL, OUTPUT);
+  digitalWrite(POWER_CONTROL, LOW);
+}
+
+void handleDebugCommands()
+{
   // debug data printed to serial monitor
   if (debug_pressure) {
     float pressureTicks = getPressureAdcTicks();
@@ -123,9 +102,40 @@ void loop() {
     Serial.print("Bus voltage: ");
     Serial.println(voltage);
   }
+}
 
+void onMqttConnectHwAndPrintEffects() {
+  Serial.println("Device connected to the MQTT broker!");
+  Serial.println();
+
+  ledDoubleFlashHalfSeconds();
+
+  // TODO: get this into mqtt service
+  sendStatusMessage();
+}
+
+void ledSingleFlashHalfSecond()
+{
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(500);
+  digitalWrite(LED_BUILTIN, LOW);
   delay(1000);
 }
+
+void ledDoubleFlashHalfSeconds()
+{
+  ledSingleFlashHalfSecond();
+  ledSingleFlashHalfSecond();
+}
+
+void ledSingleFlashOneSecond()
+{
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(500);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(1000);
+}
+
 
 // connect to wifi
 void connectWiFiIfNeeded() {
@@ -142,10 +152,7 @@ void connectWiFiIfNeeded() {
       delay(5000);
     }
 
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(1000);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(1000);
+    ledSingleFlashOneSecond();
 
     Serial.println("You're connected to the network");
     Serial.println();
@@ -164,9 +171,7 @@ void sleepForMinutes(uint minutesToSleep) {
   for (int i = 0; i < minutesToSleep; i++) {
     LowPower.deepSleep(60000);
   }
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(1000);
-  digitalWrite(LED_BUILTIN, LOW);
+
   Serial.begin(9600);
   delay(1000);
   Serial.println("Waking up");
@@ -222,6 +227,8 @@ int getBusVoltageAdcTicks() {
 }
 
 // TODO: rework so we can send various status messages
+// TODO: rework so this is encapsulated within mqtt service and other services as needed
+// there should be a class that gets this response together
 void sendStatusMessage()
 {
   float pressureTicks = getPressureAdcTicks();
@@ -245,7 +252,7 @@ void sendStatusMessage()
   char responseChars[128];
   serializeJson(responseObject, responseChars);
 
-  mqttConnection->sendMessageToTopic(topicDeviceStatus, responseChars);
+  mqttConnection->sendDeviceMessageToServer(responseChars);
 }
 
 // TODO: pick up refactoring here.  Figure out how to get rid of calls to mqttClient
@@ -421,4 +428,9 @@ void powerOffDevice()
   // this will de-energize an external N-channel MOSFET, which un-grounds the Arduino board
   Serial.print("Attempting to power off");
   digitalWrite(POWER_CONTROL, LOW);
+};
+
+void keepDevicePowerOn()
+{
+  digitalWrite(POWER_CONTROL, HIGH);
 }
