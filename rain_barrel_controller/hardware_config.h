@@ -1,3 +1,5 @@
+#include <ArduinoMqttClient.h>
+
 #ifndef HARDWARE_CONFIG
 #define HARDWARE_CONFIG
 

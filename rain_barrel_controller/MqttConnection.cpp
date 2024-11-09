@@ -1,7 +1,7 @@
-#include "mqtt_service.h"
 #include <cstring>
 #include <ArduinoMqttClient.h>
 #include <WiFiNINA.h>
+#include "MqttConnection.h"
 
 MQTTConnection::MQTTConnection(const char* prodBrokerIp, 
                                const char* debugBrokerIp, 
@@ -67,6 +67,7 @@ void MQTTConnection::connectToPrimaryBrokerOrBackupOnFailure()
 
 void MQTTConnection::poll() 
 {
+    // this sends a "keep alive" signal to the mqtt library which prevents disconnection
     mqttClient.poll();
 };
 

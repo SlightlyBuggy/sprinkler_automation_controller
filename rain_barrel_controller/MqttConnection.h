@@ -1,8 +1,8 @@
 #include <ArduinoMqttClient.h>
 #include <WiFiNINA.h>
 
-#ifndef MQTT_SERVICE
-#define MQTT_SERVICE
+#ifndef MQTTCONNECTION
+#define MQTTCONNECTION
 
 // individual server-to-device commands 
 const char commandStatus[] = "status";
@@ -59,6 +59,13 @@ class MQTTConnection
         void sendDeviceMessageToServer(char* message);
         String getMessageTopic();
 };
+
+MQTTConnection buildMqttConnection(const char* prodBrokerIp, 
+                                  const char* debugBrokerIp, 
+                                  int brokerPort,
+                                  WiFiClient wifiClient,
+                                  void (*onConnectSideEffects)());
+
 
 #endif
 
