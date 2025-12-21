@@ -13,6 +13,9 @@
 #include "wifi_util.h"
 #include "command_util.h"
 
+// TODO: create globals.h file that has the mqtt connection declared
+// then set it in globals.cpp by calling construction function
+
 WiFiClient wifiClient;
 MqttClient mqttClient(wifiClient);
 
@@ -27,13 +30,6 @@ const bool debug_batt_voltage = false;
 bool relay_on = false;
 
 void setup() {
-  // TODO: continuing to build this out and use it
-  // buildMqttConnection(brokerProd, brokerDebug, brokerPort, 
-  //                                     wifiClient, &onConnectToMqttBroker);
-  mqttConnection = new MQTTConnection(brokerProd, brokerDebug, brokerPort, 
-                                      wifiClient, &onConnectToMqttBroker);
-
-  setPinsInitialState();
 
   // wait just to make sure this isn't a power transient, which seems to happen when it suddenly becomes dark
   delay(5000);
@@ -42,17 +38,25 @@ void setup() {
 
   ledSingleFlashHalfSecond();
 
-  reconnectIfNeeded();
+  Serial.println("Creating MQTTConnection object");
+
+  mqttConnection = new MQTTConnection(brokerProd, brokerDebug, brokerPort, 
+                                    wifiClient, &onConnectToMqttBroker);
+
+  Serial.println("Setting pin initial states");
+  setPinsInitialState();
+
+  Serial.println("Connecting to WiFi and MQTT");
+  reconnectWiFiAndMqttIfNeeded();
 
   setDeviceId();
-
   delay(1000);
 }
 
 void loop() {
   mqttConnection->poll();
 
-  reconnectIfNeeded();
+  reconnectWiFiAndMqttIfNeeded();
 
   delay(1000);
 }
@@ -113,7 +117,7 @@ void onConnectToMqttBroker() {
   sendMqttStatusMessage();
 }
 
-void reconnectIfNeeded() {
+void reconnectWiFiAndMqttIfNeeded() {
 
   connectWiFiIfNeeded();
 
@@ -245,6 +249,6 @@ void wakeUpDevice() {
   Serial.begin(9600);
   delay(1000);
   Serial.println("Waking up");
-  reconnectIfNeeded();
+  reconnectWiFiAndMqttIfNeeded();
   loop();
 }

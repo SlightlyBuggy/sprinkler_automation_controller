@@ -12,14 +12,21 @@ void connectWiFiIfNeeded() {
   wiFiStatus = WiFi.status();
 
   if (wiFiStatus != WL_CONNECTED) {
-    Serial.print("Attempting to connect to WPA SSID: ");
+    Serial.println("Attempting to connect to WPA SSID: ");
     Serial.println(ssid);
+    Serial.print("Password is: ");
+    Serial.println(pass);
     while (WiFi.begin(ssid, pass) != WL_CONNECTED) {
       // failed, retry
-      Serial.print(".");
+      Serial.print("WiFi status: ");
+      Serial.println(WiFi.status());
       delay(5000);
     }
 
+    WiFi.begin(ssid, pass);
+
+    ledSingleFlashOneSecond();
+    ledSingleFlashOneSecond();
     ledSingleFlashOneSecond();
 
     Serial.println("You're connected to the network");
