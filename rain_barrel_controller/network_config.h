@@ -2,7 +2,7 @@
 #define NETWORK_CONFIG
 
 const char brokerDebug[] = "192.168.0.170";
-const char brokerProd[] = "192.168.0.232";
+const char brokerProd[] = "192.168.0.130";
 char brokerCurrent[14] = {};
 char brokerSecondary[14] = {};
 
